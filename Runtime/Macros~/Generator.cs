@@ -25,13 +25,13 @@ namespace Moths.Macros
                                   .OfType<ClassDeclarationSyntax>());
             }
 
-            Dictionary<string, Macro> macros = new Dictionary<string, Macro>();
+            Dictionary<string, (Macro, SyntaxList<UsingDirectiveSyntax>)> macros = new Dictionary<string, (Macro, SyntaxList<UsingDirectiveSyntax>)>();
 
             foreach (var cls in classes)
             {
                 if (!HasAttribute(cls, "Macro")) continue;
 
-                macros.Add(cls.Identifier.Text, new Macro(cls));
+                macros.Add(cls.Identifier.Text, (new Macro(cls), GetUsings(cls)));
             }
 
             foreach (var cls in classes)
@@ -42,7 +42,7 @@ namespace Moths.Macros
 
                 SyntaxList<UsingDirectiveSyntax> usings = default;
 
-                Protection protection = Protection.Private;
+                Protection protection = Protection.None;
                 Binding binding = Binding.Member;
                 Mutability mutability = Mutability.Mutable;
 
@@ -65,26 +65,6 @@ namespace Moths.Macros
 
                             switch (m.Kind())
                             {
-                                case SyntaxKind.PublicKeyword:
-                                    protection = Protection.Public;
-                                    break;
-
-                                case SyntaxKind.InternalKeyword:
-                                    protection = Protection.Internal;
-                                    break;
-
-                                case SyntaxKind.PrivateKeyword:
-                                    protection = Protection.Private;
-                                    break;
-
-                                case SyntaxKind.StaticKeyword:
-                                    binding = Binding.Static;
-                                    break;
-
-                                case SyntaxKind.ConstKeyword:
-                                    binding = Binding.Const;
-                                    break;
-
                                 case SyntaxKind.ReadOnlyKeyword:
                                     mutability = Mutability.Readonly;
                                     break;
@@ -94,9 +74,16 @@ namespace Moths.Macros
                         didInitialize = true;
                     }
 
+                    (Macro macro, SyntaxList<UsingDirectiveSyntax> macroUsings) = macros[pragma.Name];
+
                     Script script = new Script("");
 
                     foreach (var us in usings)
+                    {
+                        script.AddLine(us.ToFullString());
+                    }
+
+                    foreach (var us in macroUsings)
                     {
                         script.AddLine(us.ToFullString());
                     }
@@ -105,17 +92,55 @@ namespace Moths.Macros
 
                     if (!string.IsNullOrEmpty(namespaces)) script.AddLine($"namespace {namespaces}\n{{");
 
+                    string parentClasses = GetParentClasses(cls, out int parentClassesCount);
+
+                    if (!string.IsNullOrEmpty(parentClasses)) script.AddLine(parentClasses);
+
                     script.AddClass(protection, binding, Modifier.Partial, mutability, cls.Identifier.Text);
 
-                    script.Body.AddLine(macros[pragma.Name].Generate(pragma.Arguments));
+                    script.Body.AddLine(macro.Generate(pragma.Arguments));
 
                     script.Body.AddComment(System.DateTime.Now.ToString());
+
+                    while(parentClassesCount-- > 0) script.Body.AddClosingBrace();
 
                     if (!string.IsNullOrEmpty(namespaces)) script.Body.AddClosingBrace();
 
                     context.AddSource($"{namespaces}.{cls.Identifier.Text}.{pragma.Name}.{pragma.GetHashCode()}", SourceText.From(script, Encoding.UTF8));
                 }
             }
+        }
+
+        private string GetParentClasses(ClassDeclarationSyntax classNode, out int count)
+        {
+            var classes = new System.Collections.Generic.List<ClassDeclarationSyntax>();
+
+            // Collect parent classes up to the top
+            var current = classNode.Parent as ClassDeclarationSyntax;
+            while (current != null)
+            {
+                classes.Insert(0, current); // Insert at start for outermost first
+                current = current.Parent as ClassDeclarationSyntax;
+            }
+
+            // Build nested class structure
+            string result = "";
+            count = 0;
+            foreach (var cls in classes)
+            {
+                string modifiers = cls.Modifiers.ToFullString().Trim();
+                string partial = modifiers.Contains("partial") ? "partial " : "";
+                result += new string(' ', count * 4) + $"{partial}class {cls.Identifier.Text} {{\n";
+                count++;
+            }
+
+            //// Close braces
+            //for (int i = classes.Count - 1; i >= 0; i--)
+            //{
+            //    result += new string(' ', i * 4) + "}\n";
+            //}
+
+            return result;
         }
 
         private string GetFullNamespace(ClassDeclarationSyntax cls, GeneratorExecutionContext context)

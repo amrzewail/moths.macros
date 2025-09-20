@@ -11,6 +11,7 @@ namespace Moths.Macros
         Private,
         Protected,
         Internal,
+        None,
     };
 
     internal enum Modifier
@@ -36,7 +37,7 @@ namespace Moths.Macros
     {
         internal static string GetString(this Protection protection)
         {
-            return protection switch { Protection.Public => "public", Protection.Private => "private", Protection.Protected => "protected", Protection.Internal => "internal", _ => "" };
+            return protection switch { Protection.Public => "public", Protection.Private => "private", Protection.Protected => "protected", Protection.Internal => "internal", Protection.None => "", _ => "" };
         }
 
         internal static string GetString(this Binding binding) => binding switch { Binding.Member => "", Binding.Static => "static", Binding.Const => "const", _ => "" };
