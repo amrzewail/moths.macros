@@ -9,8 +9,8 @@ namespace Moths.Macros
 {
     internal struct Macro
     {
-        private static Regex FindMemberMethodRegex = new Regex(@"Macro.Member(?:<[^>]+>)?\(""([^""]+)""\).Call");
-        private static Regex FindMemberRegex = new Regex(@"Macro\.Member(?:<[^>]+>)?\(""([^""]+)""\)");
+        private static Regex FindMemberMethodRegex = new Regex(@"Macro\.Expression(?:<[^>]+>)?\(\s*[@$]?""([^""]+)""\s*\).Call");
+        private static Regex FindMemberRegex = new Regex(@"Macro\.Expression(?:<[^>]+>)?\(\s*[@$]?""([^""]+)""\s*\)");
 
         private StringBuilder _text;
         private StringBuilder _generated;
