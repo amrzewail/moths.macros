@@ -11,6 +11,7 @@ namespace Moths.Macros
 
     public static class Macro
     {
-        public static Arg Arg(string arg) => default;
+        public static Variable Member(string member) => default;
+        public static T Member<T>(string member) => default;
     }
 }

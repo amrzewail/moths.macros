@@ -3,17 +3,24 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Moths.Macros
 {
     internal struct Macro
     {
-        private string _text;
+        private static Regex FindMemberMethodRegex = new Regex(@"Macro.Member(?:<[^>]+>)?\(""([^""]+)""\).Call");
+        private static Regex FindMemberRegex = new Regex(@"Macro\.Member(?:<[^>]+>)?\(""([^""]+)""\)");
+
+        private StringBuilder _text;
+        private StringBuilder _generated;
+
         private List<string> _args;
 
         public Macro(ClassDeclarationSyntax cls)
         {
             _args = new List<string>();
+
             foreach (var attr in cls.AttributeLists.SelectMany(al => al.Attributes))
             {
                 if (attr.Name.ToString() == "Macro")
@@ -31,23 +38,33 @@ namespace Moths.Macros
 
             var body = text.Substring(text.IndexOf("{") + 1, text.LastIndexOf("}") - text.IndexOf("{") - 1);
 
-            _text = body;
+            body = FindAndReplaceMembers(body);
+
+            _text = new StringBuilder(body);
+            _generated = new StringBuilder();
         }
 
         public string Generate(IReadOnlyList<string> args)
         {
             if (_args.Count != args.Count) return "";
 
-            string txt = _text;
+            _generated.Clear();
+            _generated.Append(_text);
 
             for (int i = 0; i < _args.Count; i++)
             {
-                txt = txt.Replace($"Macro.Arg(\"{_args[i]}\").Call", args[i]);
-                txt = txt.Replace($"Macro.Arg(\"{_args[i]}\")", args[i]);
-                txt = txt.Replace(_args[i], args[i]);
+                _generated.Replace(_args[i], args[i]);
             }
 
-            return txt;
+            return _generated.ToString();
+        }
+
+        private string FindAndReplaceMembers(string macro)
+        {
+            string temp = macro;
+            temp = FindMemberMethodRegex.Replace(temp, m => m.Groups[1].Value);
+            temp = FindMemberRegex.Replace(temp, m => m.Groups[1].Value);
+            return temp;
         }
     }
 }
