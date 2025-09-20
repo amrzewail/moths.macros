@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace Moths.Macros
 {
+    [AttributeUsage(AttributeTargets.Class)]
     public class MacroAttribute : Attribute 
     {
         public MacroAttribute(params string[] args) { }

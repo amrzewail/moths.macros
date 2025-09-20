@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 
@@ -12,16 +13,18 @@ namespace Moths.Macros
 
         public Pragma(string line)
         {
-            var match = Regex.Match(line, @"^\s*#pragma Macro\s+(\w+)\s*\(([^)]*)\)");
+            var match = Regex.Match(line, @"^\s*#pragma Macro\s+(\w+)(?:\s*\(([^)]*)\))?");
             if (!match.Success) return;
 
             var name = match.Groups[1].Value;
-            var argsRaw = match.Groups[2].Value;
+            var argsRaw = match.Groups[2].Value; // may be "" if no parentheses
 
-            // split arguments by comma, trim spaces
             var args = string.IsNullOrWhiteSpace(argsRaw)
                 ? Array.Empty<string>()
-                : Array.ConvertAll(argsRaw.Split(','), a => a.Trim());
+                : argsRaw.Split(',')
+                         .Select(a => a.Trim())
+                         .Where(a => a.Length > 0)
+                         .ToArray();
 
             Name = name;
             Arguments = args;

@@ -18,6 +18,8 @@ namespace Moths.Macros
             {
                 if (attr.Name.ToString() == "Macro")
                 {
+                    if (attr.ArgumentList == null) continue;
+
                     foreach (var arg in attr.ArgumentList.Arguments)
                     {
                         _args.Add(arg.GetText().ToString().TrimStart('"').TrimEnd('"'));
@@ -40,6 +42,7 @@ namespace Moths.Macros
 
             for (int i = 0; i < _args.Count; i++)
             {
+                txt = txt.Replace($"Macro.Arg(\"{_args[i]}\").Call", args[i]);
                 txt = txt.Replace($"Macro.Arg(\"{_args[i]}\")", args[i]);
                 txt = txt.Replace(_args[i], args[i]);
             }
