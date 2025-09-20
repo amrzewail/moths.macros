@@ -1,8 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 
-namespace Analyzers
+namespace Moths.Macros
 {
     public struct Pragma
     {
@@ -11,7 +12,7 @@ namespace Analyzers
 
         public Pragma(string line)
         {
-            var match = Regex.Match(line, @"^\s*#pragma\s+(\w+)\s*\(([^)]*)\)");
+            var match = Regex.Match(line, @"^\s*#pragma Macro\s+(\w+)\s*\(([^)]*)\)");
             if (!match.Success) return;
 
             var name = match.Groups[1].Value;
@@ -29,6 +30,13 @@ namespace Analyzers
         public override string ToString()
         {
             return $"#pragma {Name}({string.Join(", ", Arguments)})";
+        }
+        public override int GetHashCode()
+        {
+            int hashCode = -1017281739;
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Name);
+            hashCode = hashCode * -1521134295 + EqualityComparer<string[]>.Default.GetHashCode(Arguments);
+            return hashCode;
         }
     }
 }

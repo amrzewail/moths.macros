@@ -20,7 +20,7 @@ MonoBehaviour:
       v1: 0
       v2: 0
     unity: 1
-    description: A package for implementing macros using Roslyn Analyzers
+    description: A package for implementing c++-like macros using Roslyn Analyzers.
     author:
       name: Amr Zewail
       email: amrzewail@hotmail.com

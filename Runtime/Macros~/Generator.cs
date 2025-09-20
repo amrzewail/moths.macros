@@ -1,18 +1,15 @@
-﻿using Analyzers;
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace ExampleSourceGenerator
+namespace Moths.Macros
 {
     [Generator]
-    public class ExampleSourceGenerator : ISourceGenerator
+    public class MacrosGenerator : ISourceGenerator
     {
         public void Execute(GeneratorExecutionContext context)
         {
@@ -21,13 +18,8 @@ namespace ExampleSourceGenerator
 
             List<ClassDeclarationSyntax> classes = new List<ClassDeclarationSyntax>();
 
-            // Inspect syntax trees
             foreach (var syntaxTree in compilation.SyntaxTrees)
             {
-                string sourceText = syntaxTree.ToString();
-                string filePath = syntaxTree.FilePath;
-
-                // Example: log class names
                 var root = syntaxTree.GetRoot();
                 classes.AddRange(root.DescendantNodes()
                                   .OfType<ClassDeclarationSyntax>());
@@ -45,18 +37,62 @@ namespace ExampleSourceGenerator
             foreach (var cls in classes)
             {
                 var lines = cls.ToFullString().Split('\n');
+
+                bool didInitialize = false;
+
                 SyntaxList<UsingDirectiveSyntax> usings = default;
+
+                Protection protection = Protection.Private;
+                Binding binding = Binding.Member;
+                Mutability mutability = Mutability.Mutable;
 
                 for (int i = 0; i < lines.Length; i++)
                 {
                     var line = lines[i];
-                    if (!line.Trim().StartsWith("#pragma")) continue;
+                    if (!line.Trim().StartsWith("#pragma Macro")) continue;
 
                     Pragma pragma = new Pragma(line);
 
                     if (!macros.ContainsKey(pragma.Name)) continue;
 
-                    if (usings == default) usings = GetUsings(cls);
+                    if (!didInitialize)
+                    {
+                        usings = GetUsings(cls);
+
+                        for (int j = 0; j < cls.Modifiers.Count; j++)
+                        {
+                            var m = cls.Modifiers[j];
+
+                            switch (m.Kind())
+                            {
+                                case SyntaxKind.PublicKeyword:
+                                    protection = Protection.Public;
+                                    break;
+
+                                case SyntaxKind.InternalKeyword:
+                                    protection = Protection.Internal;
+                                    break;
+
+                                case SyntaxKind.PrivateKeyword:
+                                    protection = Protection.Private;
+                                    break;
+
+                                case SyntaxKind.StaticKeyword:
+                                    binding = Binding.Static;
+                                    break;
+
+                                case SyntaxKind.ConstKeyword:
+                                    binding = Binding.Const;
+                                    break;
+
+                                case SyntaxKind.ReadOnlyKeyword:
+                                    mutability = Mutability.Readonly;
+                                    break;
+                            }
+                        }
+
+                        didInitialize = true;
+                    }
 
                     Script script = new Script("");
 
@@ -65,34 +101,51 @@ namespace ExampleSourceGenerator
                         script.AddLine(us.ToFullString());
                     }
 
-                    script.AddClass(Protection.Public, Binding.Member, Modifier.Partial, Mutability.Mutable, cls.Identifier.Text);
+                    string namespaces = GetFullNamespace(cls, context);
+
+                    if (!string.IsNullOrEmpty(namespaces)) script.AddLine($"namespace {namespaces}\n{{");
+
+                    script.AddClass(protection, binding, Modifier.Partial, mutability, cls.Identifier.Text);
 
                     script.Body.AddLine(macros[pragma.Name].Generate(pragma.Arguments));
 
                     script.Body.AddComment(System.DateTime.Now.ToString());
 
-                    context.AddSource($"{cls.Identifier.Text}_{i}", SourceText.From(script, Encoding.UTF8));
+                    if (!string.IsNullOrEmpty(namespaces)) script.Body.AddClosingBrace();
+
+                    context.AddSource($"{namespaces}.{cls.Identifier.Text}.{pragma.Name}.{pragma.GetHashCode()}", SourceText.From(script, Encoding.UTF8));
                 }
             }
         }
 
+        private string GetFullNamespace(ClassDeclarationSyntax cls, GeneratorExecutionContext context)
+        {
+            var model = context.Compilation.GetSemanticModel(cls.SyntaxTree);
+            var symbol = model.GetDeclaredSymbol(cls);
+            var nms = symbol?.ContainingNamespace?.ToDisplayString();
+            if (nms == "<global namespace>") return "";
+            return nms;
+        }
+
         private SyntaxList<UsingDirectiveSyntax> GetUsings(SyntaxNode cls)
         {
+            SyntaxList<UsingDirectiveSyntax> usings = default;
+
             // Climb up the parent chain until we hit a namespace or the root
             SyntaxNode? node = cls.Parent;
             while (node != null)
             {
                 if (node is NamespaceDeclarationSyntax ns)
-                    return ns.Usings;
+                    usings = usings.AddRange(ns.Usings);
                 if (node is FileScopedNamespaceDeclarationSyntax fns)
-                    return fns.Usings;
+                    usings = usings.AddRange(fns.Usings);
                 if (node is CompilationUnitSyntax cu)
-                    return cu.Usings;
+                    usings = usings.AddRange(cu.Usings);
 
                 node = node.Parent;
             }
 
-            return default;
+            return usings;
         }
 
         private bool HasAttribute(ClassDeclarationSyntax cls, string attributeName)

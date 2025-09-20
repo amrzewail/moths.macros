@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Analyzers
+namespace Moths.Macros
 {
     internal struct Macro
     {
@@ -40,6 +40,7 @@ namespace Analyzers
 
             for (int i = 0; i < _args.Count; i++)
             {
+                txt = txt.Replace($"Macro.Arg(\"{_args[i]}\")", args[i]);
                 txt = txt.Replace(_args[i], args[i]);
             }
 
