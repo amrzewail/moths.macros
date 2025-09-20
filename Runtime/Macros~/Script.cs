@@ -53,7 +53,6 @@ namespace Moths.Macros
             _text = new StringBuilder(prefix);
             _text.Append("{\n\n\t");
         }
-
         private void AddField(Protection protection, Binding binding, Mutability mutability, string type, string name, object value)
         {
             _text.Append(protection.GetString());
@@ -91,7 +90,7 @@ namespace Moths.Macros
             _text.Append(";\n\t");
         }
 
-        public string Code => _text.ToString() + "\n}";
+        public string Code => _text != null ? _text.ToString() + "\n}" : string.Empty;
 
         public void AddLine(string line) => _text.AppendLine(line);
 
@@ -176,5 +175,7 @@ namespace Moths.Macros
             if (!string.IsNullOrEmpty(inheritance)) _text.Append($" : {inheritance}");
             _text.AppendLine("");
         }
+
+        public void ClearBody() => _body = default;
     }
 }
