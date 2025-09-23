@@ -155,11 +155,11 @@ namespace Moths.Macros
                     context.AddSource($"{sourceName}{pragma.Name}.{pragma.GetHashCode()}", SourceText.From(script, Encoding.UTF8));
                 }
 
-                context.AddSource("Success", SourceText.From($"//{System.DateTime.Now}", Encoding.UTF8));
+                context.AddSource("Moths.Macros.Success", SourceText.From($"//{System.DateTime.Now}", Encoding.UTF8));
             }
             catch (System.Exception e)
             {
-                context.AddSource("Error", SourceText.From($"/*{System.DateTime.Now}\n{e}", Encoding.UTF8));
+                context.AddSource("Moths.Macros.Error", SourceText.From($"/*{System.DateTime.Now}\n{e}", Encoding.UTF8));
             }
         }
 
