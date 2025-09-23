@@ -26,14 +26,12 @@ namespace Moths.Macros
                          .Where(a => a.Length > 0)
                          .ToArray();
 
+            for (int i = 0; i < args.Length; i++) args[i] = args[i].Replace("|", ",");
+
             Name = name;
             Arguments = args;
         }
 
-        public override string ToString()
-        {
-            return $"#pragma {Name}({string.Join(", ", Arguments)})";
-        }
         public override int GetHashCode()
         {
             int hashCode = -1017281739;

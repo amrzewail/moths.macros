@@ -1,21 +1,23 @@
-﻿using Microsoft.CodeAnalysis.CSharp.Syntax;
+﻿using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
+using Microsoft.CodeAnalysis;
 
 namespace Moths.Macros
 {
     internal struct Macro
     {
-        private static Regex FindMemberMethodRegex = new Regex(@"Macro\.Expression(?:<[^>]+>)?\(\s*[@$]?""([^""]+)""\s*\).Call");
-        private static Regex FindMemberRegex = new Regex(@"Macro\.Expression(?:<[^>]+>)?\(\s*[@$]?""([^""]+)""\s*\)");
+        private static MacroExpressionRewriter ExpressionRewriter = new MacroExpressionRewriter();
 
         private StringBuilder _text;
         private StringBuilder _generated;
 
         private List<string> _args;
+
+        public IReadOnlyList<string> Args => _args;
 
         public Macro(ClassDeclarationSyntax cls)
         {
@@ -34,11 +36,22 @@ namespace Moths.Macros
                 }
             }
 
-            var text = cls.ToFullString();
+            var body = cls.SyntaxTree.GetText().ToString(Microsoft.CodeAnalysis.Text.TextSpan.FromBounds(cls.OpenBraceToken.Span.End, cls.CloseBraceToken.Span.Start));
 
-            var body = text.Substring(text.IndexOf("{") + 1, text.LastIndexOf("}") - text.IndexOf("{") - 1);
+            string errors = "";
+            
+            try
+            {
+                var root = CSharpSyntaxTree.ParseText(body).GetRoot();
+                var newRoot = ExpressionRewriter.Visit(root);
+                body = newRoot.ToFullString();
+            }
+            catch(System.Exception ex)
+            {
+                errors += $"/*{ex.ToString()}*/";
+            }
 
-            body = FindAndReplaceMembers(body);
+            body += errors;
 
             _text = new StringBuilder(body);
             _generated = new StringBuilder();
@@ -53,18 +66,12 @@ namespace Moths.Macros
 
             for (int i = 0; i < _args.Count; i++)
             {
-                _generated.Replace(_args[i], args[i]);
+                var arg = _args[i];
+                if (arg.StartsWith("type:")) arg = arg.Substring("type:".Length);
+                _generated.Replace(arg, args[i]);
             }
 
             return _generated.ToString();
-        }
-
-        private string FindAndReplaceMembers(string macro)
-        {
-            string temp = macro;
-            temp = FindMemberMethodRegex.Replace(temp, m => m.Groups[1].Value);
-            temp = FindMemberRegex.Replace(temp, m => m.Groups[1].Value);
-            return temp;
         }
     }
 }
