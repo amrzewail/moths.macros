@@ -71,7 +71,39 @@ namespace Moths.Macros
                 _generated.Replace(arg, args[i]);
             }
 
-            return _generated.ToString();
+            return RemoveIgnoreRegions(_generated.ToString());
+        }
+
+        private static string RemoveIgnoreRegions(string source)
+        {
+            var sb = new StringBuilder();
+            var lines = source.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+
+            int ignoreDepth = 0;
+
+            foreach (var line in lines)
+            {
+                var trimmed = line.Trim();
+
+                if (trimmed.StartsWith("#region Ignore", StringComparison.OrdinalIgnoreCase))
+                {
+                    ignoreDepth++;
+                    continue;
+                }
+
+                if (trimmed.StartsWith("#endregion", StringComparison.OrdinalIgnoreCase) && ignoreDepth > 0)
+                {
+                    ignoreDepth--;
+                    continue;
+                }
+
+                if (ignoreDepth == 0)
+                {
+                    sb.AppendLine(line);
+                }
+            }
+
+            return sb.ToString();
         }
     }
 }

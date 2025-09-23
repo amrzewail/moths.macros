@@ -12,7 +12,8 @@ namespace Moths.Macros
     /// <br/>
     /// - To define a type name, prefix the argument with <b>"type:"</b> and mark the macro class as <c>partial</c>.<br/>
     /// - Use <see cref="Macro.Expression"/> to embed raw source code that will be injected at generation time.<br/>
-    /// - Nested macro classes with type definitions are not supported.
+    /// - Nested macro classes with type definitions are not supported.<br/>
+    /// - Any code inside of <b>#region Ignore</b> will not be included in the generation
     /// </remarks>
     [AttributeUsage(AttributeTargets.Class)]
     public class MacroAttribute : Attribute 
