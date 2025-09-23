@@ -67,7 +67,7 @@ namespace Moths.Macros
             for (int i = 0; i < _args.Count; i++)
             {
                 var arg = _args[i];
-                if (arg.StartsWith("type:")) arg = arg.Substring("type:".Length);
+                if (arg.Trim().StartsWith("type:")) arg = arg.Trim().Substring("type:".Length);
                 _generated.Replace(arg, args[i]);
             }
 
