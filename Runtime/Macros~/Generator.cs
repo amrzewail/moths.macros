@@ -221,7 +221,7 @@ namespace Moths.Macros
             var symbol = model.GetDeclaredSymbol(nmsNode);
             var nms = symbol?.ContainingNamespace?.ToDisplayString();
             if (nms != "<global namespace>") namespaces += nms + (nmsNode != null ? "." : "");
-            if (nmsNode != null) namespaces += nmsNode.Name.ToFullString().Trim().Replace(" ", "");
+            if (nmsNode != null) namespaces += nmsNode.Name.ToString().Split('.').Last();
             return namespaces;
         }
 
