@@ -38,6 +38,8 @@ namespace Moths.Macros
 
             var body = cls.SyntaxTree.GetText().ToString(Microsoft.CodeAnalysis.Text.TextSpan.FromBounds(cls.OpenBraceToken.Span.End, cls.CloseBraceToken.Span.Start));
 
+            body = RemoveIgnoreRegions(body);
+
             string errors = "";
             
             try
@@ -71,7 +73,7 @@ namespace Moths.Macros
                 _generated.Replace(arg, args[i]);
             }
 
-            return RemoveIgnoreRegions(_generated.ToString());
+            return _generated.ToString();
         }
 
         private static string RemoveIgnoreRegions(string source)
