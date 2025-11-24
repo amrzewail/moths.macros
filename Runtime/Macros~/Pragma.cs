@@ -13,7 +13,7 @@ namespace Moths.Macros
 
         public Pragma(string line)
         {
-            var match = Regex.Match(line, @"^\s*#pragma Macro\s+(\w+)(?:\s*\(([^)]*)\))?");
+            var match = Regex.Match(line, @"^\s*#pragma Macro\s+(\w+)(?:\s*\((.*)\))?");
             if (!match.Success) return;
 
             var name = match.Groups[1].Value;
@@ -26,7 +26,7 @@ namespace Moths.Macros
                          .Where(a => a.Length > 0)
                          .ToArray();
 
-            for (int i = 0; i < args.Length; i++) args[i] = args[i].Replace("|", ",");
+            for (int i = 0; i < args.Length; i++) args[i] = args[i].Replace(@"|", ",");
 
             Name = name;
             Arguments = args;
